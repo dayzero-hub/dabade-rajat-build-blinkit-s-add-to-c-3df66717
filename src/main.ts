@@ -4,6 +4,7 @@ import { formatRupees } from './money.ts';
 import { products } from './products.ts';
 
 const grid = mustQuery('#grid', HTMLElement);
+const badge = mustQuery('#cart-badge', HTMLElement);
 
 const quantities: Map<string, number> = new Map(products.map((product) => [product.id, 0]));
 
@@ -49,6 +50,10 @@ function render(): void {
     return card;
   });
   grid.replaceChildren(...cards);
+
+  let total = 0;
+  for (const quantity of quantities.values()) total += quantity;
+  badge.textContent = String(total);
 }
 
 grid.addEventListener('click', (event) => {
@@ -64,6 +69,21 @@ grid.addEventListener('click', (event) => {
     quantities.set(product.id, quantity - 1);
   }
   render();
+  restoreFocus(product.id, action);
 });
+
+// render() replaces every button, so put keyboard focus back on the same product's
+// control — the same action if it still exists and is enabled, otherwise its neighbour.
+function restoreFocus(id: string, action: string | undefined): void {
+  const candidates = [action, 'plus', 'minus', 'add'].filter((c): c is string => c !== undefined);
+  for (const candidate of candidates) {
+    const selector = `button[data-id="${CSS.escape(id)}"][data-action="${candidate}"]:not(:disabled)`;
+    const button = grid.querySelector<HTMLButtonElement>(selector);
+    if (button) {
+      button.focus();
+      return;
+    }
+  }
+}
 
 render();
